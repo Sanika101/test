@@ -1,0 +1,311 @@
+package A3;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileWriter; import
+java.io.InputStreamReader;
+import java.io.PrintWriter; import
+java.util.ArrayList; import
+java.util.HashMap;
+import java.util.Iterator; import
+java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
+public class MacroProcessor_PassOne
+{
+static List<String> MDT; static
+Map<String, String> MNT; static int
+mntPtr, mdtPtr; static
+Map<String,String> ALA; public
+static void main(String[] args) { try{
+pass1(); }
+catch(Exception ex)
+{
+ex.printStackTrace();
+} } static void
+pass1() throws
+Exception {
+//Initiallize data structures
+MDT = new ArrayList<String>();
+MNT = new LinkedHashMap<String, String>();
+ALA = new HashMap<String,String>();
+mntPtr =0;
+mdtPtr = 0;
+BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream("src/A3/input.txt")));
+PrintWriter out_pass1 = new PrintWriter(new FileWriter("src/A3/output_pass1.txt"), true);
+PrintWriter out_mnt = new PrintWriter(new FileWriter("src/A3/MNT.txt"), true);
+PrintWriter out_mdt = new PrintWriter(new FileWriter("src/A3/MDT.txt"),
+true);
+String s;
+boolean processingMacroDefinition = false;
+boolean processMacroName = false;
+System.out.println("============= Pass 1 Output ==============");
+//Read from input file one line at a time
+while((s = input.readLine()) != null)
+{
+//For each line, separate out the tokens
+String s_arr[] = tokenizeString(s," ");
+//Analyze first token to check if it is a macro definition
+String curToken = s_arr[0];
+if(curToken.equalsIgnoreCase("MACRO"))
+{
+processingMacroDefinition = true;
+processMacroName = true;
+} else
+if(processingMacroDefinition == true){
+if(curToken.equalsIgnoreCase("MEND")){
+MDT.add(mdtPtr++, s);
+processingMacroDefinition = false;
+continue;
+}
+//Insert Macro Name into MNT
+if(processMacroName == true){
+MNT.put(curToken,
+mdtPtr+""); mntPtr++;
+processMacroName = false;
+processArgumentList(s_arr[1]);
+MDT.add(mdtPtr,s); mdtPtr++;
+continue;
+}
+//Convert arguments in the definition into corresponding indexed notation
+//ADD &REG,&X == ADD #2,#1
+String indexedArgList = processArguments(s_arr[1]);
+MDT.add(mdtPtr++, curToken + " " + indexedArgList
+);
+//If line is not part of a Macro definition print the line as it is in the file
+output System.out.println(s);
+out_pass1.println(s);
+} }
+input.close()
+;
+//Print MNT
+System.out.println("============= MNT ==============");
+Iterator<String> itMNT = MNT.keySet().iterator();
+String key, mntRow, mdtRow;
+while(itMNT.hasNext())
+{ key = (String)itMNT.next();
+mntRow = key + " " +
+MNT.get(key);
+System.out.println(mntRow);
+out_mnt.println(mntRow);
+}
+//Print MDT
+System.out.println("============= MDT ==============");
+for(int i = 0; i < MDT.size(); i++){
+mdtRow = i + " " + MDT.get(i);
+System.out.println(mdtRow);
+out_mdt.println(mdtRow);
+}
+out_pass1.close();
+out_mnt.close();
+out_mdt.close();
+}
+static void processArgumentList(String argList)
+{
+StringTokenizer st = new StringTokenizer(argList, ",", false);
+//For each macro definition, remove contents of the HashMap
+//which are arguments from previous macro definition
+ALA.clear();
+int argCount = st.countTokens();
+//Put all arguments for current macro definition in the HashMap
+//with argument as key and argument index as value
+String curArg;
+for(int i=1 ; i <= argCount ; i++)
+{
+curArg = st.nextToken();
+if(curArg.contains("="))
+{
+curArg = curArg.substring(0,curArg.indexOf("="));
+}
+ALA.put(curArg, "#"+i);
+} }
+static String processArguments(String argList){
+StringTokenizer st = new StringTokenizer(argList, ",",
+false); int argCount = st.countTokens(); String curArg,
+argIndexed; for(int i=0 ; i < argCount ; i++) { curArg =
+st.nextToken(); argIndexed = ALA.get(curArg);
+argList = argList.replaceAll(curArg, argIndexed);
+} return argList; } static String[] tokenizeString(String
+str, String separator){
+StringTokenizer st = new StringTokenizer(str, separator, false);
+//Construct an array of the separated tokens
+String s_arr[] = new
+String[st.countTokens()]; for(int i=0 ; i <
+s_arr.length ; i++) { s_arr[i] =
+st.nextToken();
+} return
+s_arr;
+}
+} 
+
+
+
+
+
+A4;
+import java.io.BufferedReader; import
+java.io.FileInputStream; import
+java.io.FileWriter; import
+java.io.InputStreamReader; import
+java.io.PrintWriter; import java.util.ArrayList;
+import java.util.LinkedHashMap; import
+java.util.List; import java.util.Map; import
+java.util.StringTokenizer; public class
+MacroProcessor_PassTwo { static List<String>
+MDT; static Map<String, String> MNT; static
+int mntPtr, mdtPtr; static List<String>
+formalParams, actualParams; public static void
+main(String[] args) { try{ initiallizeTables();
+pass2(); }catch(Exception ex){
+ex.printStackTrace();
+} }
+static void pass2() throws Exception {
+BufferedReader input = new BufferedReader(new InputStreamReader(new
+FileInputStream("src/A4/output_pass1.txt")));
+PrintWriter out_pass2 = new PrintWriter(new
+FileWriter("src/A4/output_pass2.txt"), true);
+System.out.println("============= Pass 2 Output ==============");
+//Read from input file one line at a time
+String s; while((s = input.readLine())
+!= null) {
+String s_arr[] = tokenizeString(s, " ");
+//First token will either be a mnemonic or a macro call
+if(MNT.containsKey(s_arr[0])){
+//It is a macro call
+//Create an array list of formal parameters
+String actual_params[] = tokenizeString(s_arr[1], ",");
+String param; actualParams.clear(); for(int
+i =0; i <actual_params.length; i++){
+param = actual_params[i];
+if(param.contains("=")){
+//If parameter specified a default value, the
+value will go in the list instead of param name
+param =
+param.substring(param.indexOf("=")+1,
+param.length());
+}
+actualParams.add(param);
+}
+//Expand the macro call
+mdtPtr = Integer.parseInt(MNT.get(s_arr[0]));
+//Read macro definitaion starting from mdtPtr till
+MEND String macroDef; boolean createParamArray =
+true; String def_tokens[] = {}, paramStr = "", printStr;
+while(true){
+//First line of macro definition is name and
+arglist macroDef = MDT.get(mdtPtr);
+if(createParamArray == true){
+createFormalParamList(macroDef);
+createParamArray = false; //Tokenize line of
+macro definition def_tokens =
+tokenizeString(macroDef, " "); //If the line is
+MEND, exit loop
+if(def_tokens[0].equalsIgnoreCase("MEND")){
+break;
+}
+else{
+//Replace formal parameters with actual
+paramStr =
+}
+printStr = "+" + def_tokens[0] + " " + paramStr;
+System.out.println(printStr);
+out_pass2.println(printStr);
+} else{
+}
+mdtPtr++;
+}
+//It is a line of normal assembly code
+//Print the line as it is in the output file
+System.out.println(s);
+out_pass2.println(s);
+} else{
+parameter
+s
+replaceFormalParams(def_tokens[1]);
+} }
+input.close()
+;
+out_pass2.cl
+ose();
+}
+static String replaceFormalParams(String formalParamList){
+String returnStr = "";
+//Replace # by blank string
+formalParamList = formalParamList.replace("#", "");
+//Separate formal params
+String param_array[] = tokenizeString(formalParamList, ",");
+int index;
+String actualParam;
+//For every parameter in the formal parameter
+list for(int i = 0; i < param_array.length; i++){
+index = Integer.parseInt(param_array[i]);
+if(index <= actualParams.size()){ actualParam =
+actualParams.get(index-1);
+} else{ actualParam =
+formalParams.get(index-1);
+}
+returnStr += actualParam + ",";
+}
+//Strip last comma
+returnStr = returnStr.substring(0,returnStr.length() -1);
+return returnStr;
+}
+static void createFormalParamList(String macroDef){
+//By processing macro call generate array of actual parameters
+String argList, arg_array[];
+String s_arr[] = tokenizeString(macroDef, " ");
+//First array element will be macro name and second will be argument list
+argList = s_arr[1];
+//Separate the arguments in the list
+arg_array = tokenizeString(argList,
+","); String param;
+formalParams.clear(); for(int i=0; i
+<arg_array.length; i++){ param =
+arg_array[i]; if(param.contains("=")){
+//If parameter specified a default value, the value will go in the
+list instead of param name param =
+param.substring(param.indexOf("=")+1, param.length());
+}
+formalParams.add(param);
+} }
+static void initiallizeTables() throws
+Exception{ MDT = new ArrayList<String>();
+MNT = new LinkedHashMap<String,
+String>(); formalParams = new
+ArrayList<String>(); actualParams = new
+ArrayList<String>();
+//Read contents of MNT.txt and create internal data structure
+BufferedReader br;
+String s;
+br = new BufferedReader(new InputStreamReader(new
+FileInputStream("src/A4/MNT.txt")));
+while((s = br.readLine()) != null) {
+StringTokenizer st = new StringTokenizer(s, " ", false);
+MNT.put(st.nextToken(), st.nextToken());
+}
+br.close();
+//Read contents of MDT.txt and create internal data structure
+br = new BufferedReader(new InputStreamReader(new
+FileInputStream("src/A4/MDT.txt")))
+; while((s = br.readLine()) != null) {
+//For each line, separate out the
+tokens String s_arr[] =
+tokenizeString(s," "); if(s_arr.length
+== 0){ continue; }
+int index = Integer.parseInt(s_arr[0]);
+if(s_arr.length == 2){
+MDT.add(index, s_arr[1]);
+}
+else if(s_arr.length == 3){
+MDT.add(index, s_arr[1] + " " + s_arr[2]);
+} } br.close(); } static String[] tokenizeString(String str,
+String separator){
+StringTokenizer st = new StringTokenizer(str, separator, false);
+//Construct an array of the separated tokens
+String s_arr[] = new String[st.countTokens()];
+for(int i=0 ; i < s_arr.length ; i++) {
+s_arr[i] = st.nextToken();
+}
+return s_arr;
+}
+}
